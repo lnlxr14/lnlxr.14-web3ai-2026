@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Karaoke-Match AI | 迷わない、ハズさないAI選曲コンシェルジュ</title>
+  <!-- Google Fonts (Outfit & Noto Sans JP) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 背景演出用のグラデーション・オーブ -->
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <div class="app-container">
+    <!-- ヘッダー -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="logo-icon">🎤</span>
+        <h1>Karaoke-Match <span class="accent-text">AI</span></h1>
+      </div>
+      <p class="subtitle">あなたの「音域」✕「その場の空気」で、絶対ハズさない曲を提案</p>
+    </header>
+
+    <main class="main-content">
+      <!-- 入力セクション -->
+      <section class="config-section card">
+        <h2 class="section-title"><span class="step-badge">1</span> あなたの声・得意な曲を設定</h2>
+        
+        <!-- 音域設定 -->
+        <div class="form-group">
+          <label class="form-label">
+            <span>自分の声 of 高さ（音域）</span>
+            <span id="vocal-range-val" class="badge bg-cyan">中音域 (標準)</span>
+          </label>
+          <div class="slider-container">
+            <span class="slider-label">低音</span>
+            <input type="range" id="vocal-range" min="1" max="100" value="50" class="range-slider">
+            <span class="slider-label">高音</span>
+          </div>
+        </div>
+
+        <!-- 得意なアーティスト -->
+        <div class="form-group">
+          <label class="form-label">よく歌う・得意なアーティスト <span class="label-desc">（複数選択可）</span></label>
+          <div class="artist-chips" id="artist-chips">
+            <button type="button" class="chip" data-artist="aimyon">あいみょん</button>
+            <button type="button" class="chip" data-artist="yonezu">米津玄師</button>
+            <button type="button" class="chip" data-artist="vaundy">Vaundy</button>
+            <button type="button" class="chip" data-artist="hige-dism">Official髭男dism</button>
+            <button type="button" class="chip" data-artist="yoasobi">YOASOBI</button>
+            <button type="button" class="chip" data-artist="utada">宇多田ヒカル</button>
+            <button type="button" class="chip" data-artist="yuuri">優里</button>
+            <button type="button" class="chip" data-artist="king-gnu">King Gnu</button>
+            <button type="button" class="chip" data-artist="backnumber">back number</button>
+            <button type="button" class="chip" data-artist="ado">Ado</button>
+          </div>
+        </div>
+
+        <hr class="divider">
+
+        <h2 class="section-title"><span class="step-badge">2</span> 今日のカラオケの状況を設定</h2>
+        
+        <div class="grid-2col">
+          <!-- 一緒にいるメンバー -->
+          <div class="form-group">
+            <label class="form-label">一緒のメンバー</label>
+            <div class="option-selectors" id="member-selector">
+              <button type="button" class="selector-btn active" data-value="boss">会社の上司・同僚</button>
+              <button type="button" class="selector-btn" data-value="friends">友人（同世代）</button>
+              <button type="button" class="selector-btn" data-value="date">デート・異性</button>
+              <button type="button" class="selector-btn" data-value="family">家族</button>
+            </div>
+          </div>
+
+          <!-- 狙いたい空気感 -->
+          <div class="form-group">
+            <label class="form-label">狙いたい空気感</label>
+            <div class="option-selectors" id="mood-selector">
+              <button type="button" class="selector-btn active" data-value="hype">とにかく盛り上がる</button>
+              <button type="button" class="selector-btn" data-value="emotional">エモい・しっとり</button>
+              <button type="button" class="selector-btn" data-value="singalong">みんなで大合唱</button>
+              <button type="button" class="selector-btn" data-value="safe">無難に繋ぎたい</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 実行ボタン -->
+        <div class="action-container">
+          <button type="button" id="btn-submit" class="btn-submit">
+            <span class="btn-icon">✨</span>
+            <span class="btn-text">AI選曲を実行する</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ローディングセクション (初期状態非表示) -->
+      <section class="loading-section card hidden" id="loading-area">
+        <div class="loader-content">
+          <div class="wave-container">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+          <p class="loading-status">AIが音域データを解析中...</p>
+          <p class="loading-substatus" id="loading-tip">シチュエーションに応じた盛り上がり度をシミュレートしています</p>
+        </div>
+      </section>
+
+      <!-- 結果セクション (初期状態非表示) -->
+      <section class="results-section hidden" id="results-area">
+        <div class="results-header">
+          <h2>🎉 AIが厳選！あなたに最適な3曲</h2>
+          <p>あなたの音域に合い、今の場を最高に創り上げる曲です。</p>
+        </div>
+
+        <div class="results-grid" id="recommendations-container">
+          <!-- 動的にJSでカードを生成・挿入します -->
+        </div>
+
+        <div class="retry-container">
+          <button type="button" id="btn-retry" class="btn-secondary">条件を変えてもう一度分析</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- フッター -->
+    <footer class="app-footer">
+      <p>© 2026 Karaoke-Match AI. All rights reserved.</p>
+    </footer>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="app.js"></script>
+</body>
+</html>
