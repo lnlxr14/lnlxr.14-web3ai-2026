@@ -4,7 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const vocalRangeVal = document.getElementById('vocal-range-val');
   const artistChips = document.querySelectorAll('.chip');
   const memberSelectors = document.querySelectorAll('#member-selector .selector-btn');
+  const generationSelectors = document.querySelectorAll('#generation-selector .selector-btn');
   const moodSelectors = document.querySelectorAll('#mood-selector .selector-btn');
+  const originalKeyCheckbox = document.getElementById('original-key-only');
   const btnSubmit = document.getElementById('btn-submit');
   const btnRetry = document.getElementById('btn-retry');
   
@@ -19,7 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     vocalLevel: 2, // 1: 低音, 2: 中音, 3: 高音
     selectedArtists: [],
     member: 'boss',
-    mood: 'hype'
+    generation: '40s50s',
+    mood: 'hype',
+    originalKeyOnly: false
   };
 
   // --- Event Listeners ---
@@ -69,7 +73,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   setupSelector(memberSelectors, 'member');
+  setupSelector(generationSelectors, 'generation');
   setupSelector(moodSelectors, 'mood');
+
+  // 原曲キー縛り
+  originalKeyCheckbox.addEventListener('change', (e) => {
+    state.originalKeyOnly = e.target.checked;
+  });
 
   // 実行ボタン
   btnSubmit.addEventListener('click', () => {
@@ -160,90 +170,173 @@ document.addEventListener('DOMContentLoaded', () => {
     resultsArea.classList.remove('hidden');
   }
 
-  // --- Mock Engine ---
-  
+  // --- Matching Engine ---
   function getMockRecommendations(currentState) {
-    // 本来はAI/DB検索が入る部分。今回は入力の組み合わせに応じてそれらしい結果を返す。
+    const songDatabase = window.songDatabase || [];
     
-    let topPick = {};
-    let secondPick = {};
-    let thirdPick = {};
+    // 各曲の適合スコアを算出
+    const scoredSongs = songDatabase.map(song => {
+      let score = 50; // 基本スコア
+      
+      // 1. 音域 (vocalLevel) マッチ度
+      let vocalScore = 0;
+      let vocalDiff = Math.abs(song.vocalLevel - currentState.vocalLevel);
+      
+      if (currentState.originalKeyOnly) {
+        // 原曲キー縛りの場合
+        if (vocalDiff === 0) {
+          vocalScore = 100;
+          score += 45; // 音域が完全に一致するなら大幅加点
+        } else {
+          vocalScore = 0;
+          score = -9999; // 一致しない場合は完全に除外
+        }
+      } else {
+        // 通常（キー変更可）の場合
+        if (vocalDiff === 0) {
+          vocalScore = 95 + Math.floor(Math.random() * 5); // 95-99%
+          score += 30;
+        } else if (vocalDiff === 1) {
+          vocalScore = 80 + Math.floor(Math.random() * 10); // 80-89%
+          score += 15;
+        } else {
+          vocalScore = 60 + Math.floor(Math.random() * 10); // 60-69%
+          score -= 10;
+        }
+      }
+      
+      // 2. 得意アーティストマッチ度
+      let isFavArtist = currentState.selectedArtists.includes(song.artistKey);
+      if (isFavArtist) {
+        score += 60; // 得意アーティストなら非常に高い加点
+      }
+      
+      // 3. ムード（雰囲気）マッチ度
+      let isMoodMatch = song.moods.includes(currentState.mood);
+      if (isMoodMatch) {
+        score += 40; // ムードが一致すれば加点
+      } else {
+        score -= 20; // ミスマッチなら減点
+      }
+      
+      // 盛り上がり度の算出 (表示用のビジュアル値)
+      let hypeBase = 50;
+      if (currentState.mood === 'hype') {
+        hypeBase = isMoodMatch ? (93 + Math.floor(Math.random() * 6)) : (70 + Math.floor(Math.random() * 10));
+      } else if (currentState.mood === 'singalong') {
+        hypeBase = isMoodMatch ? (90 + Math.floor(Math.random() * 9)) : (65 + Math.floor(Math.random() * 15));
+      } else if (currentState.mood === 'emotional') {
+        // エモい時の盛り上がり度は「しっとりした盛り上がり」としてやや低めに表現
+        hypeBase = isMoodMatch ? (55 + Math.floor(Math.random() * 15)) : (40 + Math.floor(Math.random() * 15));
+      } else {
+        // safe (無難)
+        hypeBase = isMoodMatch ? (75 + Math.floor(Math.random() * 10)) : (50 + Math.floor(Math.random() * 15));
+      }
+      
+      // 4. 同伴メンバーの年代 (era) マッチ度
+      if (currentState.member === 'boss') {
+        // 上司: 昭和 > 平成 > 令和
+        if (song.era === 'showa') {
+          score += 35;
+        } else if (song.era === 'heisei') {
+          score += 20;
+        } else if (song.era === 'reiwa') {
+          score -= 15;
+        }
+        if (song.members.includes('boss')) score += 15;
+      } else if (currentState.member === 'friends') {
+        // 友達: 令和 > 平成 > 昭和
+        if (song.era === 'reiwa') {
+          score += 35;
+        } else if (song.era === 'heisei') {
+          score += 15;
+        } else if (song.era === 'showa') {
+          score -= 20;
+        }
+        if (song.members.includes('friends')) score += 15;
+      } else if (currentState.member === 'date') {
+        // デート: 令和 = 平成 > 昭和
+        if (song.era === 'reiwa') {
+          score += 25;
+        } else if (song.era === 'heisei') {
+          score += 25;
+        } else if (song.era === 'showa') {
+          score -= 15;
+        }
+        if (song.members.includes('date')) score += 15;
+      } else if (currentState.member === 'family') {
+        // 家族: 昭和 = 平成 > 令和
+        if (song.era === 'showa') {
+          score += 20;
+        } else if (song.era === 'heisei') {
+          score += 20;
+        } else if (song.era === 'reiwa') {
+          score += 5;
+        }
+        if (song.members.includes('family')) score += 15;
+      }
+      
+      // 5. 相手の年代層による era マッチ
+      if (currentState.generation === '20s') {
+        if (song.era === 'reiwa')  score += 30;
+        else if (song.era === 'heisei') score += 5;
+        else if (song.era === 'showa')  score -= 20;
+      } else if (currentState.generation === '30s') {
+        if (song.era === 'reiwa')  score += 15;
+        else if (song.era === 'heisei') score += 20;
+        else if (song.era === 'showa')  score -= 10;
+      } else if (currentState.generation === '40s50s') {
+        if (song.era === 'reiwa')  score -= 10;
+        else if (song.era === 'heisei') score += 25;
+        else if (song.era === 'showa')  score += 20;
+      } else if (currentState.generation === '60s') {
+        if (song.era === 'reiwa')  score -= 25;
+        else if (song.era === 'heisei') score += 10;
+        else if (song.era === 'showa')  score += 35;
+      }
 
-    const isLow = currentState.vocalLevel === 1;
-    const isMid = currentState.vocalLevel === 2;
-    const isHigh = currentState.vocalLevel === 3;
-
-    // --- シチュエーションごとの基本選曲 ---
-    if (currentState.member === 'boss') {
-      // 会社の上告・同僚
-      if (isHigh) {
-        topPick = { title: "チェリー", artist: "スピッツ", vocalMatch: 95, hypeMatch: 98, comment: "上司世代の超ド定番！あなたの高音ボイスなら原曲キーで美しく歌い上げられ、拍手喝采間違いなしです。" };
-        secondPick = { title: "浪漫飛行", artist: "米米CLUB", vocalMatch: 88, hypeMatch: 92, comment: "疾走感があり上司ウケ抜群。高音が得意なあなたにぴったりの伸びやかなメロディです。" };
-        thirdPick = { title: "粉雪", artist: "レミオロメン", vocalMatch: 92, hypeMatch: 85, comment: "サビの高音ドッカン系。少しエモい空気にしたい時に上司も一緒に口ずさめる名曲です。" };
-      } else if (isLow) {
-        topPick = { title: "桜坂", artist: "福山雅治", vocalMatch: 98, hypeMatch: 90, comment: "低音の魅力を最大限に活かせる名曲。上司世代にも知名度抜群で、渋くかっこよく歌いこなせます。" };
-        secondPick = { title: "世界に一つだけの花", artist: "SMAP", vocalMatch: 95, hypeMatch: 96, comment: "音域が低〜中音域で安定しており、無理なく歌えます。全員で手拍子できる最強の安全牌です。" };
-        thirdPick = { title: "TSUNAMI", artist: "サザンオールスターズ", vocalMatch: 90, hypeMatch: 88, comment: "キーが低めで落ち着いて歌えるサザンの大ヒット曲。サビの盛り上がりもしっかり作れます。" };
+      // コメントの選択
+      let comment = "";
+      if (currentState.originalKeyOnly) {
+        comment = song.commentOriginalKey[currentState.vocalLevel] || song.commentOriginalKey[2];
       } else {
-        // 中音域
-        topPick = { title: "世界に一つだけの花", artist: "SMAP", vocalMatch: 98, hypeMatch: 96, comment: "音域が広くなく、無理せず歌えて誰もが知っている最強の安全牌です。" };
-        secondPick = { title: "サウダージ", artist: "ポルノグラフィティ", vocalMatch: 89, hypeMatch: 94, comment: "リズムに乗りやすく、中〜低音域でもしっかり魅せられる一曲。上司からの評価も高いです。" };
-        thirdPick = { title: "夏色", artist: "ゆず", vocalMatch: 85, hypeMatch: 90, comment: "【キー：-2推奨】手拍子で確実な盛り上がりを作れるテッパン曲。サビの高音だけキーを少し下げると格段に歌いやすくなります。" };
+        comment = song.commentTemplates[currentState.vocalLevel] || song.commentTemplates[2];
       }
-    } else if (currentState.mood === 'emotional') {
-      // エモい・しっとり
-      if (isLow) {
-        topPick = { title: "桜坂", artist: "福山雅治", vocalMatch: 99, hypeMatch: 88, comment: "低音域の方にとっての最強の勝負曲。Aメロの深い響きからサビまで、無理なくエモい世界観を作れます。" };
-        secondPick = { title: "Lemon", artist: "米津玄師", vocalMatch: 68, hypeMatch: 93, comment: "【キー：-4設定推奨】原曲はかなり高めですが、キーを4つ下げることで低音の深みが活き、エモさが倍増します。" };
-        thirdPick = { title: "ドライフラワー", artist: "優里", vocalMatch: 70, hypeMatch: 90, comment: "【キー：-3設定推奨】サビの高音がきつい場合はキーを3つ下げるのがおすすめ。男らしい切なさが表現できます。" };
-      } else if (isHigh) {
-        topPick = { title: "マリーゴールド", artist: "あいみょん", vocalMatch: 96, hypeMatch: 91, comment: "原曲キーで気持ちよく歌えるエモ曲。あなたの伸びやかなハイトーンに完璧にフィットします。" };
-        secondPick = { title: "Lemon", artist: "米津玄師", vocalMatch: 94, hypeMatch: 95, comment: "サビの高音も原曲キーでバッチリ綺麗に出せます。その場を一気にエモい空気感に引き込めます。" };
-        thirdPick = { title: "ドライフラワー", artist: "優里", vocalMatch: 95, hypeMatch: 92, comment: "サビのハイトーンの聴かせどころを、あなたの美しい高音ボイスで完璧に再現できます。" };
-      } else {
-        // 中音域
-        topPick = { title: "マリーゴールド", artist: "あいみょん", vocalMatch: 94, hypeMatch: 91, comment: "世代を問わず響くエモさ。無理のない音域で、感情を込めて歌いやすいメロディラインです。" };
-        secondPick = { title: "Lemon", artist: "米津玄師", vocalMatch: 88, hypeMatch: 95, comment: "【キー：-2推奨】エモい曲の代名詞。サビの高音を2つ下げることで、喉を痛めず気持ちよく歌いきれます。" };
-        thirdPick = { title: "ドライフラワー", artist: "優里", vocalMatch: 90, hypeMatch: 92, comment: "【キー：-1推奨】少し高めですが、キーを1つ下げるだけでサビのラストまで安定して歌唱可能です。" };
-      }
-    } else if (currentState.mood === 'singalong') {
-      // みんなで大合唱
-      if (isLow) {
-        topPick = { title: "小さな恋のうた", artist: "MONGOL800", vocalMatch: 96, hypeMatch: 99, comment: "【1オクターブ下推奨】原曲キーのまま「1オクターブ下」で歌うと、低音に完璧にハマり、周りも全員で大合唱できます！" };
-        secondPick = { title: "天体観測", artist: "BUMP OF CHICKEN", vocalMatch: 94, hypeMatch: 96, comment: "BUMPの曲はもともと低めの音域で作られているため、低音ボイスのあなたでも原曲キーでとても歌いやすい合唱曲です。" };
-        thirdPick = { title: "残酷な天使のテーゼ", artist: "高橋洋子", vocalMatch: 60, hypeMatch: 98, comment: "【キー：-5設定推奨】キーを5つ下げる（あるいはオク下で歌う）ことで、無理なくサビを全員で大合唱してブチ上がれます！" };
-      } else {
-        topPick = { title: "小さな恋のうた", artist: "MONGOL800", vocalMatch: 92, hypeMatch: 99, comment: "全員で叫ぶように歌える合唱の王様！音程を気にせず、勢いでカバーできるのも強みです。" };
-        secondPick = { title: "天体観測", artist: "BUMP OF CHICKEN", vocalMatch: 95, hypeMatch: 96, comment: "「オーイエーアハーン」の掛け声で一体感が生まれます。中音域が中心で非常に歌いやすいです。" };
-        thirdPick = { title: "残酷な天使のテーゼ", artist: "高橋洋子", vocalMatch: 88, hypeMatch: 98, comment: "アニメを知らなくても盛り上がる国民的アンセム。サビは全員で熱唱必至！" };
-      }
+      
+      return {
+        title: song.title,
+        artist: song.artist,
+        vocalMatch: vocalScore,
+        hypeMatch: hypeBase,
+        comment: comment,
+        score: score
+      };
+    });
+    
+    // スコアの高い順にソート
+    const sortedSongs = scoredSongs.sort((a, b) => b.score - a.score);
+    
+    // 原曲キー縛りで除外された曲（score === -9999）以外の有効な曲を抽出
+    const validSongs = sortedSongs.filter(song => song.score > -1000);
+    
+    // 結果の決定 (3曲)
+    let results = [];
+    if (validSongs.length >= 3) {
+      results = validSongs.slice(0, 3);
     } else {
-      // とにかく盛り上がる（Default: hype）
-      if (isLow) {
-        topPick = { title: "怪獣の花唄", artist: "Vaundy", vocalMatch: 75, hypeMatch: 97, comment: "【キー：-4設定推奨】原曲は非常に高いですが、キーを4つ下げることで低音のパンチが効いたパワフルな盛り上がりを作れます！" };
-        secondPick = { title: "アイドル", artist: "YOASOBI", vocalMatch: 58, hypeMatch: 99, comment: "【キー：-6設定 または 1オクターブ下推奨】原曲キーでは歌唱不可能ですが、キーを限界まで下げるかオク下にすることで、リズム感のあるクールな低音ラップとして抜群に盛り上がります！" };
-        thirdPick = { title: "Pretender", artist: "Official髭男dism", vocalMatch: 62, hypeMatch: 94, comment: "【キー：-4設定推奨】超高音曲ですが、キーを4つ下げれば男らしい渋いハスキーボイスでサビを気持ちよく響かせられます。" };
-      } else if (isHigh) {
-        topPick = { title: "怪獣の花唄", artist: "Vaundy", vocalMatch: 98, hypeMatch: 97, comment: "原曲キーで完璧にフィット！サビのハイトーンの疾走感を損なわず、場を最高潮にブチ上げられます！" };
-        secondPick = { title: "アイドル", artist: "YOASOBI", vocalMatch: 92, hypeMatch: 99, comment: "超高難易度のハイトーン曲ですが、高音が得意なあなたなら原曲キーで歌いこなし、全員を圧倒できます！" };
-        thirdPick = { title: "Pretender", artist: "Official髭男dism", vocalMatch: 96, hypeMatch: 94, comment: "サビの最高音もクリアに発声可能。原曲キーの美しさをそのままに、会場を沸かせられる一曲です。" };
-      } else {
-        // 中音域
-        topPick = { title: "怪獣の花唄", artist: "Vaundy", vocalMatch: 96, hypeMatch: 97, comment: "今のトレンドど真ん中で、サビの爆発力も圧倒的。あなたの声質なら疾走感を損なわず歌いきれます。" };
-        secondPick = { title: "アイドル", artist: "YOASOBI", vocalMatch: 82, hypeMatch: 99, comment: "【キー：-3推奨】原曲キーはかなり高いため、キーを3つ下げることでサビの高音も力強くクリアに発声できるようになります。" };
-        thirdPick = { title: "Pretender", artist: "Official髭男dism", vocalMatch: 85, hypeMatch: 94, comment: "【キー：-2推奨】誰もが知る名曲。キーを2つ下げることで、サビの伸びやかなメロディをコントロールしやすくなります。" };
+      results = [...validSongs];
+      // 不足している場合は、原曲キー縛りを無視した中から近い音域の曲をフォールバックとして追加
+      const fallbackList = sortedSongs.filter(song => song.score <= -1000);
+      for (let i = 0; i < 3 - validSongs.length; i++) {
+        if (fallbackList[i]) {
+          const songItem = { ...fallbackList[i] };
+          songItem.vocalMatch = 40;
+          songItem.comment = `【※音域注意】原曲キー縛りで適合する曲が不足したため、近い音域から特別選出しています。原曲キーですが、少し音域が合わない可能性があります。`;
+          results.push(songItem);
+        }
       }
     }
-
-    // もし得意なアーティストに「あいみょん」が入っていて、topPickがあいみょんでなければ強引に差し込む（モック的な演出）
-    if (currentState.selectedArtists.includes('aimyon') && topPick.artist !== 'あいみょん') {
-      thirdPick = { ...topPick };
-      topPick = { title: "君はロックを聴かない", artist: "あいみょん", vocalMatch: 98, hypeMatch: 92, comment: "あなたがよく歌うアーティストからの選出！歌い慣れた曲調で、今のシチュエーションにもバッチリハマります。" };
-    } else if (currentState.selectedArtists.includes('yonezu') && topPick.artist !== '米津玄師') {
-      thirdPick = { ...topPick };
-      topPick = { title: "KICK BACK", artist: "米津玄師", vocalMatch: 93, hypeMatch: 96, comment: "得意な米津玄師の中から、今の空気を最高にブチ上げる一曲。あなたの声の太さが活きます。" };
-    }
-
-    return [topPick, secondPick, thirdPick];
+    
+    return results;
   }
 });

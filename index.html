@@ -45,6 +45,20 @@
           </div>
         </div>
 
+        <!-- 原曲キー縛り設定 -->
+        <div class="form-group key-option-group">
+          <div class="toggle-container">
+            <span class="toggle-label">
+              <span>原曲キー縛り</span>
+              <span class="label-desc">（キー変更なしで歌える曲のみ提案）</span>
+            </span>
+            <label class="switch">
+              <input type="checkbox" id="original-key-only">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+
         <!-- 得意なアーティスト -->
         <div class="form-group">
           <label class="form-label">よく歌う・得意なアーティスト <span class="label-desc">（複数選択可）</span></label>
@@ -59,6 +73,16 @@
             <button type="button" class="chip" data-artist="king-gnu">King Gnu</button>
             <button type="button" class="chip" data-artist="backnumber">back number</button>
             <button type="button" class="chip" data-artist="ado">Ado</button>
+            <button type="button" class="chip" data-artist="hoshi">星野源</button>
+            <button type="button" class="chip" data-artist="mrs">Mrs. GREEN APPLE</button>
+            <button type="button" class="chip" data-artist="creepy">Creepy Nuts</button>
+            <button type="button" class="chip" data-artist="ryokuoushoku">緑黄色社会</button>
+            <button type="button" class="chip" data-artist="spitz">スピッツ</button>
+            <button type="button" class="chip" data-artist="bump">BUMP OF CHICKEN</button>
+            <button type="button" class="chip" data-artist="yuzu">ゆず</button>
+            <button type="button" class="chip" data-artist="southern">サザンオールスターズ</button>
+            <button type="button" class="chip" data-artist="porno">ポルノグラフィティ</button>
+            <button type="button" class="chip" data-artist="fukuyama">福山雅治</button>
           </div>
         </div>
 
@@ -75,6 +99,17 @@
               <button type="button" class="selector-btn" data-value="friends">友人（同世代）</button>
               <button type="button" class="selector-btn" data-value="date">デート・異性</button>
               <button type="button" class="selector-btn" data-value="family">家族</button>
+            </div>
+          </div>
+
+          <!-- ターゲット年代 -->
+          <div class="form-group">
+            <label class="form-label">相手の年代層</label>
+            <div class="option-selectors" id="generation-selector">
+              <button type="button" class="selector-btn" data-value="20s">20代</button>
+              <button type="button" class="selector-btn" data-value="30s">30代</button>
+              <button type="button" class="selector-btn active" data-value="40s50s">40〜50代</button>
+              <button type="button" class="selector-btn" data-value="60s">60代以上</button>
             </div>
           </div>
 
@@ -138,6 +173,7 @@
   </div>
 
   <!-- JavaScript -->
+  <script src="songs.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
