@@ -28,8 +28,26 @@
     </header>
 
     <main class="main-content">
+
+      <!-- モード選択セクション -->
+      <section class="mode-select-section card" id="mode-select-section">
+        <h2 class="mode-select-title">今日はどちらで使いますか？</h2>
+        <div class="mode-btn-group">
+          <button type="button" class="mode-btn" id="btn-mode-sing">
+            <span class="mode-btn-icon">🎤</span>
+            <span class="mode-btn-label">歌う曲を決めたい</span>
+            <span class="mode-btn-desc">今日歌える曲の中から選ぶ</span>
+          </button>
+          <button type="button" class="mode-btn" id="btn-mode-learn">
+            <span class="mode-btn-icon">📚</span>
+            <span class="mode-btn-label">歌える曲を増やしたい</span>
+            <span class="mode-btn-desc">練習候補の新しい曲を探す</span>
+          </button>
+        </div>
+      </section>
+
       <!-- 入力セクション -->
-      <section class="config-section card">
+      <section class="config-section card hidden">
         <h2 class="section-title"><span class="step-badge">1</span> あなたの声・得意な曲を設定</h2>
         
         <!-- 音域設定 -->
@@ -152,8 +170,8 @@
       <!-- 結果セクション (初期状態非表示) -->
       <section class="results-section hidden" id="results-area">
         <div class="results-header">
-          <h2>🎉 AIが厳選！あなたに最適な3曲</h2>
-          <p>あなたの音域に合い、今の場を最高に創り上げる曲です。</p>
+          <h2 id="results-title">🎉 AIが厳選！あなたに最適な曲</h2>
+          <p id="results-desc">あなたの音域に合い、今の場を最高に創り上げる曲です。</p>
         </div>
 
         <div class="results-grid" id="recommendations-container">
