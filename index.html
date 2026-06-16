@@ -27,6 +27,13 @@
       <p class="subtitle">あなたの「音域」✕「その場の空気」で、絶対ハズさない曲を提案</p>
     </header>
 
+    <!-- ナビゲーションタブ -->
+    <nav class="main-nav">
+      <button type="button" class="nav-tab active" id="tab-ai">🎤 AI選曲</button>
+      <button type="button" class="nav-tab" id="tab-mysongs">⭐ マイソング</button>
+      <button type="button" class="nav-tab" id="tab-search">🔍 曲を探す</button>
+    </nav>
+
     <main class="main-content">
 
       <!-- モード選択セクション -->
@@ -48,6 +55,13 @@
 
       <!-- 入力セクション -->
       <section class="config-section card hidden">
+
+        <!-- モード切替 -->
+        <div class="mode-switcher">
+          <button type="button" class="mode-switch-btn" id="switch-mode-sing">🎤 歌う曲を決めたい</button>
+          <button type="button" class="mode-switch-btn" id="switch-mode-learn">📚 歌える曲を増やしたい</button>
+        </div>
+
         <h2 class="section-title"><span class="step-badge">1</span> あなたの声・得意な曲を設定</h2>
         
         <!-- 音域設定 -->
@@ -93,14 +107,19 @@
             <button type="button" class="chip" data-artist="ado">Ado</button>
             <button type="button" class="chip" data-artist="hoshi">星野源</button>
             <button type="button" class="chip" data-artist="mrs">Mrs. GREEN APPLE</button>
-            <button type="button" class="chip" data-artist="creepy">Creepy Nuts</button>
-            <button type="button" class="chip" data-artist="ryokuoushoku">緑黄色社会</button>
+<button type="button" class="chip" data-artist="ryokuoushoku">緑黄色社会</button>
             <button type="button" class="chip" data-artist="spitz">スピッツ</button>
             <button type="button" class="chip" data-artist="bump">BUMP OF CHICKEN</button>
             <button type="button" class="chip" data-artist="yuzu">ゆず</button>
             <button type="button" class="chip" data-artist="southern">サザンオールスターズ</button>
             <button type="button" class="chip" data-artist="porno">ポルノグラフィティ</button>
             <button type="button" class="chip" data-artist="fukuyama">福山雅治</button>
+            <button type="button" class="chip" data-artist="arashi">嵐</button>
+            <button type="button" class="chip" data-artist="hibari">美空ひばり</button>
+            <button type="button" class="chip" data-artist="sayuri">石川さゆり</button>
+            <button type="button" class="chip" data-artist="kitajima">北島三郎</button>
+            <button type="button" class="chip" data-artist="hosokawa">細川たかし</button>
+            <button type="button" class="chip" data-artist="sakamoto-kyu">坂本九</button>
           </div>
         </div>
 
@@ -179,9 +198,32 @@
         </div>
 
         <div class="retry-container">
+          <button type="button" id="btn-shuffle" class="btn-secondary btn-shuffle">🔀 別の曲を見る</button>
           <button type="button" id="btn-retry" class="btn-secondary">条件を変えてもう一度分析</button>
         </div>
       </section>
+      <!-- マイソング管理セクション -->
+      <section class="my-songs-section card hidden" id="my-songs-section">
+        <h2 class="section-title">⭐ マイソング</h2>
+        <div class="my-songs-tabs">
+          <button type="button" class="my-songs-tab active" data-tab="mastered">✅ 習得済み</button>
+          <button type="button" class="my-songs-tab" data-tab="practicing">🎵 練習中</button>
+        </div>
+        <div id="mastered-list" class="my-songs-list"></div>
+        <div id="practicing-list" class="my-songs-list hidden"></div>
+      </section>
+
+      <!-- 曲検索セクション -->
+      <section class="song-search-section card hidden" id="song-search-section">
+        <h2 class="section-title">🔍 曲を探してタグ付け</h2>
+        <div class="search-input-container">
+          <input type="text" id="song-search-input" placeholder="曲名・アーティスト名で検索..." class="search-input" autocomplete="off">
+        </div>
+        <div id="search-results-list" class="search-results-list">
+          <p class="search-placeholder">曲名やアーティスト名を入力してください</p>
+        </div>
+      </section>
+
     </main>
 
     <!-- フッター -->

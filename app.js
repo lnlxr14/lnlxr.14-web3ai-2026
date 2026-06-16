@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const originalKeyCheckbox = document.getElementById('original-key-only');
   const btnSubmit = document.getElementById('btn-submit');
   const btnRetry = document.getElementById('btn-retry');
+  const btnShuffle = document.getElementById('btn-shuffle');
 
   const modeSelectSection = document.getElementById('mode-select-section');
   const btnModeSing = document.getElementById('btn-mode-sing');
@@ -20,6 +21,22 @@ document.addEventListener('DOMContentLoaded', () => {
   const loadingTip = document.getElementById('loading-tip');
   const resultsTitle = document.getElementById('results-title');
   const resultsDesc = document.getElementById('results-desc');
+
+  // ナビタブ関連
+  const navTabs = document.querySelectorAll('.nav-tab');
+  const tabAI = document.getElementById('tab-ai');
+  const tabMySongs = document.getElementById('tab-mysongs');
+  const tabSearch = document.getElementById('tab-search');
+  const mySongsSection = document.getElementById('my-songs-section');
+  const songSearchSection = document.getElementById('song-search-section');
+  const songSearchInput = document.getElementById('song-search-input');
+  const searchResultsList = document.getElementById('search-results-list');
+
+  // AI関連セクション（タブ切替で使う）
+  const aiSections = [modeSelectSection, configSection, loadingArea, resultsArea];
+
+  // 最後に表示していたAIセクションを記憶（タブ復帰時に使う）
+  let lastAiSection = modeSelectSection;
 
   // State
   const state = {
@@ -51,16 +68,165 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('karaoke_tags', JSON.stringify(tags));
   }
 
+  // --- ナビゲーション ---
+  function showTab(tabId) {
+    navTabs.forEach(t => t.classList.remove('active'));
+    mySongsSection.classList.add('hidden');
+    songSearchSection.classList.add('hidden');
+
+    if (tabId === 'ai') {
+      tabAI.classList.add('active');
+      // 離れる前に表示していたセクションを復元
+      aiSections.forEach(s => s.classList.add('hidden'));
+      lastAiSection.classList.remove('hidden');
+    } else {
+      // AIタブを離れる前に現在のセクションを保存
+      const visibleSection = aiSections.find(s => !s.classList.contains('hidden'));
+      if (visibleSection) lastAiSection = visibleSection;
+      aiSections.forEach(s => s.classList.add('hidden'));
+
+      if (tabId === 'mysongs') {
+        tabMySongs.classList.add('active');
+        renderMySongs();
+        mySongsSection.classList.remove('hidden');
+      } else if (tabId === 'search') {
+        tabSearch.classList.add('active');
+        songSearchSection.classList.remove('hidden');
+      }
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  tabAI.addEventListener('click', () => showTab('ai'));
+  tabMySongs.addEventListener('click', () => showTab('mysongs'));
+  tabSearch.addEventListener('click', () => showTab('search'));
+
+  // --- マイソング ---
+  function renderMySongs() {
+    const tags = loadTags();
+    const songDB = window.songDatabase || [];
+    const masteredSongs = songDB.filter(s => tags[s.title] === 'mastered');
+    const practicingSongs = songDB.filter(s => tags[s.title] === 'practicing');
+
+    const masteredList = document.getElementById('mastered-list');
+    const practicingList = document.getElementById('practicing-list');
+
+    function renderList(container, songs, tagType) {
+      if (songs.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">${tagType === 'mastered' ? '🎤' : '🎵'}</div>
+            <p>${tagType === 'mastered' ? '習得済みの曲はまだありません' : '練習中の曲はまだありません'}</p>
+            <p style="font-size:0.85rem;color:var(--text-muted)">AI選曲の結果や「曲を探す」からタグを付けましょう</p>
+          </div>`;
+        return;
+      }
+      container.innerHTML = songs.map(song => `
+        <div class="my-song-item">
+          <div>
+            <div class="my-song-title">${song.title}</div>
+            <div class="my-song-artist">${song.artist}</div>
+          </div>
+          <button class="my-song-remove" data-song="${song.title}">✕ 削除</button>
+        </div>
+      `).join('');
+      container.querySelectorAll('.my-song-remove').forEach(btn => {
+        btn.addEventListener('click', () => {
+          saveTag(btn.dataset.song, null);
+          renderMySongs();
+        });
+      });
+    }
+
+    renderList(masteredList, masteredSongs, 'mastered');
+    renderList(practicingList, practicingSongs, 'practicing');
+  }
+
+  // マイソング内タブ切替
+  document.querySelectorAll('.my-songs-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.my-songs-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('mastered-list').classList.toggle('hidden', tab.dataset.tab !== 'mastered');
+      document.getElementById('practicing-list').classList.toggle('hidden', tab.dataset.tab !== 'practicing');
+    });
+  });
+
+  // --- 曲検索 ---
+  function renderSearchResults(query) {
+    if (!query) {
+      searchResultsList.innerHTML = '<p class="search-placeholder">曲名やアーティスト名を入力してください</p>';
+      return;
+    }
+    const songDB = window.songDatabase || [];
+    const tags = loadTags();
+    const q = query.toLowerCase();
+    const results = songDB.filter(s =>
+      s.title.toLowerCase().includes(q) ||
+      s.artist.toLowerCase().includes(q)
+    );
+    if (results.length === 0) {
+      searchResultsList.innerHTML = '<p class="search-placeholder">曲が見つかりませんでした</p>';
+      return;
+    }
+    searchResultsList.innerHTML = results.map(song => {
+      const currentTag = tags[song.title] || null;
+      return `
+        <div class="search-result-item">
+          <div class="search-result-info">
+            <div class="search-result-title">${song.title}</div>
+            <div class="search-result-artist">${song.artist}</div>
+          </div>
+          <div class="search-result-tags">
+            <button class="tag-btn ${currentTag === 'mastered' ? 'active-mastered' : ''}" data-song="${song.title}" data-tag="mastered">✅ 習得済み</button>
+            <button class="tag-btn ${currentTag === 'practicing' ? 'active-practicing' : ''}" data-song="${song.title}" data-tag="practicing">🎵 練習中</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    searchResultsList.querySelectorAll('.tag-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const currentTag = loadTags()[btn.dataset.song];
+        saveTag(btn.dataset.song, currentTag === btn.dataset.tag ? null : btn.dataset.tag);
+        renderSearchResults(query);
+      });
+    });
+  }
+
+  songSearchInput.addEventListener('input', (e) => {
+    renderSearchResults(e.target.value.trim());
+  });
+
   // --- Mode Selection ---
+  const switchModeSing = document.getElementById('switch-mode-sing');
+  const switchModeLearn = document.getElementById('switch-mode-learn');
+
+  function updateModeSwitcher(mode) {
+    switchModeSing.classList.toggle('active', mode === 'sing');
+    switchModeLearn.classList.toggle('active', mode === 'learn');
+  }
+
   function selectMode(mode) {
     state.mode = mode;
+    updateModeSwitcher(mode);
     modeSelectSection.classList.add('hidden');
+    lastAiSection = configSection;
     configSection.classList.remove('hidden');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   btnModeSing.addEventListener('click', () => selectMode('sing'));
   btnModeLearn.addEventListener('click', () => selectMode('learn'));
+
+  // 設定画面内のモード切替ボタン
+  switchModeSing.addEventListener('click', () => {
+    state.mode = 'sing';
+    updateModeSwitcher('sing');
+  });
+  switchModeLearn.addEventListener('click', () => {
+    state.mode = 'learn';
+    updateModeSwitcher('learn');
+  });
 
   // --- Event Listeners ---
 
@@ -122,10 +288,18 @@ document.addEventListener('DOMContentLoaded', () => {
     startMatching();
   });
 
+  // シャッフルボタン
+  btnShuffle.addEventListener('click', () => {
+    recommendationsContainer.innerHTML = '';
+    generateAndShowResults(true);
+  });
+
   // リトライボタン
   btnRetry.addEventListener('click', () => {
     resultsArea.classList.add('hidden');
     configSection.classList.remove('hidden');
+    navTabs.forEach(t => t.classList.remove('active'));
+    tabAI.classList.add('active');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
@@ -154,8 +328,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 2500);
   }
 
-  function generateAndShowResults() {
-    const recommendations = getMockRecommendations(state);
+  function generateAndShowResults(shuffleMode = false) {
+    const recommendations = getMockRecommendations(state, shuffleMode);
     const tags = loadTags();
     const isSingMode = state.mode === 'sing';
 
@@ -169,6 +343,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     recommendationsContainer.innerHTML = '';
+
+    // 空状態の処理
+    if (recommendations.length === 0) {
+      recommendationsContainer.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="empty-state-icon">🎵</div>
+          <p>条件に合う曲が見つかりませんでした</p>
+          <p style="font-size:0.85rem;color:var(--text-muted)">音域設定や原曲キー縛りを変えてみてください</p>
+        </div>`;
+      resultsArea.classList.remove('hidden');
+      return;
+    }
 
     recommendations.forEach((rec, index) => {
       const isTopPick = index === 0;
@@ -251,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Matching Engine ---
-  function getMockRecommendations(currentState) {
+  function getMockRecommendations(currentState, shuffleMode = false) {
     const songDatabase = window.songDatabase || [];
     const tags = loadTags();
     const isSingMode = currentState.mode === 'sing';
@@ -260,6 +446,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const songTag = tags[song.title] || null;
 
       let score = 50;
+      // シャッフルモード: スコアにランダムノイズを加えて異なる結果を出す
+      if (shuffleMode) {
+        score += Math.floor(Math.random() * 50) - 25;
+      }
 
       // singモード: 習得済みでも universalでもない曲は除外
       if (isSingMode) {
@@ -299,9 +489,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // 2. 得意アーティストマッチ度
+      // 2. 得意アーティストマッチ度（習得済みより低い優先度）
       if (currentState.selectedArtists.includes(song.artistKey)) {
-        score += 60;
+        score += 25;
       }
 
       // 3. ムードマッチ度

@@ -68,6 +68,11 @@ h1, h2, h3, .accent-text, .step-badge {
   100% { transform: translate(-30px, 80px) scale(0.9); }
 }
 
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
 /* レイアウト */
 .app-container {
   max-width: 800px;
@@ -750,6 +755,271 @@ input:checked + .slider::before {
   border-color: var(--neon-pink);
   color: var(--neon-pink);
   opacity: 1;
+}
+
+/* ===== モード切替 ===== */
+.mode-switcher {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.mode-switch-btn {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.mode-switch-btn:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.mode-switch-btn.active {
+  background: rgba(157, 0, 255, 0.15);
+  border-color: var(--neon-purple);
+  color: #fff;
+  box-shadow: 0 0 15px var(--neon-purple-glow);
+}
+
+/* ===== ナビゲーションタブ ===== */
+.main-nav {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nav-tab {
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  padding: 0.65rem 1.4rem;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.nav-tab:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.nav-tab.active {
+  background: rgba(0, 240, 255, 0.15);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+  box-shadow: 0 0 15px var(--neon-cyan-glow);
+}
+
+/* ===== シャッフルボタン ===== */
+.retry-container {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-shuffle {
+  border-color: var(--neon-purple);
+  color: var(--neon-purple);
+}
+
+.btn-shuffle:hover {
+  border-color: var(--neon-purple);
+  color: var(--neon-purple);
+  background: rgba(157, 0, 255, 0.1);
+  box-shadow: 0 0 15px var(--neon-purple-glow);
+}
+
+/* ===== マイソング ===== */
+.my-songs-tabs {
+  display: flex;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.my-songs-tab {
+  background: transparent;
+  border: 1px solid var(--glass-border);
+  color: var(--text-muted);
+  padding: 0.5rem 1.2rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.my-songs-tab.active {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: var(--neon-cyan);
+  color: var(--neon-cyan);
+}
+
+.my-songs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.my-song-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.2rem;
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  gap: 1rem;
+  transition: border-color 0.2s;
+}
+
+.my-song-item:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.my-song-title {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.my-song-artist {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.my-song-remove {
+  background: transparent;
+  border: 1px solid rgba(255, 0, 122, 0.3);
+  color: rgba(255, 0, 122, 0.7);
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.my-song-remove:hover {
+  background: rgba(255, 0, 122, 0.15);
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state p {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+/* ===== 曲検索 ===== */
+.search-input-container {
+  margin-bottom: 1.5rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  color: var(--text-main);
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 20px var(--neon-cyan-glow);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.search-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.search-placeholder {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.2rem;
+  background: var(--glass-highlight);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  gap: 1rem;
+  flex-wrap: wrap;
+  transition: border-color 0.2s;
+}
+
+.search-result-item:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.search-result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-result-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-result-artist {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.search-result-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 /* ===== universalバッジ ===== */
