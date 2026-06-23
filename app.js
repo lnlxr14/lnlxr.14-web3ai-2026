@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
-  const vocalRangeSlider = document.getElementById('vocal-range');
   const vocalRangeVal = document.getElementById('vocal-range-val');
   const artistChips = document.querySelectorAll('.chip');
   const memberSelectors = document.querySelectorAll('#member-selector .selector-btn');
@@ -41,12 +40,50 @@ document.addEventListener('DOMContentLoaded', () => {
   // State
   const state = {
     mode: null, // 'sing' | 'learn'
-    vocalLevel: 2, // 1: 低音, 2: 中音, 3: 高音
+    vocalMin: 48, // MIDI: C3 (最低音デフォルト)
+    vocalMax: 72, // MIDI: C5 (最高音デフォルト)
     selectedArtists: [],
     member: 'boss',
     generation: '40s50s',
     mood: 'hype',
     originalKeyOnly: false
+  };
+
+  // ---- 音域ヘルパー ----
+  const NOTE_NAMES   = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const SOLFEGE      = ['ド','ド♯','レ','レ♯','ミ','ファ','ファ♯','ソ','ソ♯','ラ','ラ♯','シ'];
+
+  function midiToLabel(midi) {
+    const oct  = Math.floor(midi / 12) - 1;
+    const idx  = midi % 12;
+    return `${SOLFEGE[idx]}（${NOTE_NAMES[idx]}${oct}）`;
+  }
+
+  // vocalMin/vocalMax → vocalLevel 1/2/3
+  function getVocalLevel(st) {
+    if (st.vocalMax <= 60) return 1; // ~C4: 低音
+    if (st.vocalMax <= 72) return 2; // ~C5: 中音
+    return 3;                         // C5以上: 高音
+  }
+
+  // ---- Piano constants (must be declared before buildPiano() is called) ----
+  const WW = 36; // white key width px
+  const BW = 22; // black key width px
+  let pianoStep = 'low';
+
+  const NOTE_POS = {
+    'C':  { isBlack: false, pos: 0 },
+    'C#': { isBlack: true,  pos: 0.6 },
+    'D':  { isBlack: false, pos: 1 },
+    'D#': { isBlack: true,  pos: 1.65 },
+    'E':  { isBlack: false, pos: 2 },
+    'F':  { isBlack: false, pos: 3 },
+    'F#': { isBlack: true,  pos: 3.6 },
+    'G':  { isBlack: false, pos: 4 },
+    'G#': { isBlack: true,  pos: 4.65 },
+    'A':  { isBlack: false, pos: 5 },
+    'A#': { isBlack: true,  pos: 5.65 },
+    'B':  { isBlack: false, pos: 6 },
   };
 
   // --- Tags (localStorage) ---
@@ -230,26 +267,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Event Listeners ---
 
-  // 音域スライダー
-  vocalRangeSlider.addEventListener('input', (e) => {
-    const val = parseInt(e.target.value);
-    let level;
-    let labelHTML;
+  // ピアノ鍵盤を初期化
+  buildPiano();
+  updateVocalDisplay();
 
-    if (val < 35) {
-      level = 1;
-      labelHTML = '<span class="badge" style="background:rgba(157,0,255,0.2);color:#bd00ff;border:1px solid #bd00ff">低音域 (ロー)</span>';
-    } else if (val > 65) {
-      level = 3;
-      labelHTML = '<span class="badge" style="background:rgba(255,0,122,0.2);color:#ff007a;border:1px solid #ff007a">高音域 (ハイ)</span>';
-    } else {
-      level = 2;
-      labelHTML = '<span class="badge bg-cyan">中音域 (標準)</span>';
-    }
-
-    state.vocalLevel = level;
-    vocalRangeVal.innerHTML = labelHTML;
-  });
+  // マイク測定ボタン
+  document.getElementById('btn-mic-measure').addEventListener('click', startMicMeasure);
+  document.getElementById('btn-mic-cancel').addEventListener('click', cancelMicMeasure);
 
   // アーティストチップ（複数選択トグル）
   artistChips.forEach(chip => {
@@ -467,7 +491,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // 1. 音域マッチ度
       let vocalScore = 0;
-      let vocalDiff = Math.abs(song.vocalLevel - currentState.vocalLevel);
+      const userVocalLevel = getVocalLevel(currentState);
+      let vocalDiff = Math.abs(song.vocalLevel - userVocalLevel);
 
       if (currentState.originalKeyOnly) {
         if (vocalDiff === 0) {
@@ -559,9 +584,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // コメントの選択
       let comment = '';
       if (currentState.originalKeyOnly) {
-        comment = song.commentOriginalKey[currentState.vocalLevel] || song.commentOriginalKey[2];
+        comment = song.commentOriginalKey[userVocalLevel] || song.commentOriginalKey[2];
       } else {
-        comment = song.commentTemplates[currentState.vocalLevel] || song.commentTemplates[2];
+        comment = song.commentTemplates[userVocalLevel] || song.commentTemplates[2];
       }
 
       return {
@@ -578,10 +603,249 @@ document.addEventListener('DOMContentLoaded', () => {
     // スコア順にソート
     scoredSongs.sort((a, b) => b.score - a.score);
 
-    // 提案曲数: singモードで習得済みタグあり→3曲、それ以外→6曲
     const masteredCount = Object.values(tags).filter(t => t === 'mastered').length;
     const resultCount = (isSingMode && masteredCount > 0) ? 3 : 6;
-
     return scoredSongs.slice(0, resultCount);
   }
+
+  // ================================================================
+  // Piano keyboard (C3 to C6)
+  // ================================================================
+
+  function buildPiano() {
+    const keyboard = document.getElementById('piano-keyboard');
+    keyboard.innerHTML = '';
+    let whiteCount = 0;
+
+    for (let oct = 3; oct <= 6; oct++) {
+      const notesInOct = oct < 6 ? NOTE_NAMES : ['C'];
+      notesInOct.forEach(name => {
+        const { isBlack, pos } = NOTE_POS[name];
+        const midi = 48 + (oct - 3) * 12 + NOTE_NAMES.indexOf(name);
+        const label = midiToLabel(midi);
+        const key = document.createElement('button');
+        key.type = 'button';
+        key.className = 'piano-key ' + (isBlack ? 'black-key' : 'white-key');
+        key.dataset.midi = midi;
+        key.title = label;
+        const octOffset = (oct - 3) * 7 * WW;
+        if (!isBlack) {
+          key.style.left = (octOffset + pos * WW) + 'px';
+          if (name === 'C') {
+            const lbl = document.createElement('span');
+            lbl.className = 'key-oct-label';
+            lbl.textContent = 'C' + oct;
+            key.appendChild(lbl);
+          }
+          whiteCount++;
+        } else {
+          key.style.left = (octOffset + pos * WW - BW / 2) + 'px';
+        }
+        key.addEventListener('click', () => onPianoKeyClick(midi, label));
+        keyboard.appendChild(key);
+      });
+    }
+    keyboard.style.width = (whiteCount * WW) + 'px';
+    keyboard.style.height = '120px';
+    updatePianoHighlight();
+  }
+
+  function onPianoKeyClick(midi, label) {
+    if (pianoStep === 'low') {
+      state.vocalMin = midi;
+      pianoStep = 'high';
+      document.getElementById('piano-hint').innerHTML =
+        '<span class="piano-step-high">② 最高音</span>の鍵盤をタップしてください';
+    } else {
+      if (midi <= state.vocalMin) {
+        state.vocalMin = midi;
+        pianoStep = 'high';
+        document.getElementById('piano-hint').innerHTML =
+          '<span class="piano-step-high">② 最高音</span>の鍵盤をタップしてください';
+      } else {
+        state.vocalMax = midi;
+        pianoStep = 'low';
+        document.getElementById('piano-hint').innerHTML =
+          '<span class="piano-step-low">① 最低音</span>の鍵盤をタップして変更できます';
+      }
+    }
+    updatePianoHighlight();
+    updateVocalDisplay();
+  }
+
+  function updatePianoHighlight() {
+    document.querySelectorAll('.piano-key').forEach(key => {
+      const midi = parseInt(key.dataset.midi);
+      key.classList.remove('key-low', 'key-high', 'key-in-range');
+      if (midi === state.vocalMin)                             key.classList.add('key-low');
+      else if (midi === state.vocalMax)                        key.classList.add('key-high');
+      else if (midi > state.vocalMin && midi < state.vocalMax) key.classList.add('key-in-range');
+    });
+  }
+
+  function updateVocalDisplay() {
+    document.getElementById('vsd-note-low').textContent  = midiToLabel(state.vocalMin);
+    document.getElementById('vsd-note-high').textContent = midiToLabel(state.vocalMax);
+    const level = getVocalLevel(state);
+    const styles = {
+      1: ['rgba(157,0,255,0.2)', '#bd00ff', '#bd00ff',  'Low'],
+      2: ['rgba(0,240,255,0.15)', 'var(--neon-cyan)', 'rgba(0,240,255,0.3)', 'Mid'],
+      3: ['rgba(255,0,122,0.2)',  '#ff007a', '#ff007a',  'High'],
+    };
+    const [bg, color, border, label] = styles[level];
+    vocalRangeVal.style.cssText = 'background:' + bg + ';color:' + color + ';border:1px solid ' + border;
+    vocalRangeVal.textContent = label;
+  }
+
+  // ================================================================
+  // Mic pitch detection (Web Audio API)
+  // ================================================================
+  let micStream   = null;
+  let micAudioCtx = null;
+  let micAnalyser = null;
+  let micCancelled = false;
+
+  function cancelMicMeasure() {
+    micCancelled = true;
+    stopMic();
+    document.getElementById('mic-measure-ui').classList.add('hidden');
+  }
+
+  function stopMic() {
+    if (micStream)   { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+    if (micAudioCtx) { micAudioCtx.close().catch(() => {}); micAudioCtx = null; }
+    micAnalyser = null;
+  }
+
+  async function startMicMeasure() {
+    micCancelled = false;
+    const ui          = document.getElementById('mic-measure-ui');
+    const phaseLabel  = document.getElementById('mic-phase-label');
+    const countdown   = document.getElementById('mic-countdown');
+    const noteDisplay = document.getElementById('mic-note-display');
+
+    ui.classList.remove('hidden');
+    phaseLabel.textContent = 'マイクへのアクセスを要求中...';
+    noteDisplay.textContent = '--';
+
+    try {
+      micStream   = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      micAnalyser = micAudioCtx.createAnalyser();
+      micAnalyser.fftSize = 2048;
+      micAudioCtx.createMediaStreamSource(micStream).connect(micAnalyser);
+
+      const getMidi = () => {
+        const buf = new Float32Array(micAnalyser.fftSize);
+        micAnalyser.getFloatTimeDomainData(buf);
+        const freq = autoCorrelate(buf, micAudioCtx.sampleRate);
+        if (freq <= 0) return null;
+        const m = Math.round(12 * Math.log2(freq / 440) + 69);
+        return (m >= 36 && m <= 96) ? m : null;
+      };
+
+      // 準備カウントダウン（録音なし）
+      const readyCountdown = (sec, msg) => new Promise(resolve => {
+        if (micCancelled) { resolve(); return; }
+        phaseLabel.textContent = msg;
+        noteDisplay.textContent = '--';
+        let rem = sec;
+        countdown.textContent = rem;
+        const tickId = setInterval(() => {
+          rem--;
+          countdown.textContent = rem;
+          if (rem <= 0) { clearInterval(tickId); resolve(); }
+        }, 1000);
+      });
+
+      // 録音フェーズ
+      const runPhase = (sec, msg, reducer) => new Promise(resolve => {
+        if (micCancelled) { resolve(null); return; }
+        phaseLabel.textContent = msg;
+        let rem = sec;
+        countdown.textContent = rem;
+        const notes = [];
+        const pitchId = setInterval(() => {
+          const m = getMidi();
+          if (m) { notes.push(m); noteDisplay.textContent = midiToLabel(m); }
+        }, 100);
+        const tickId = setInterval(() => {
+          rem--;
+          countdown.textContent = rem;
+          if (rem <= 0) {
+            clearInterval(pitchId);
+            clearInterval(tickId);
+            resolve(notes.length ? reducer(notes) : null);
+          }
+        }, 1000);
+      });
+
+      await readyCountdown(3, '準備してください...');
+      if (micCancelled) return;
+      const lowMidi  = await runPhase(3, '🎤 一番低い声を3秒間出してください', ns => Math.min(...ns));
+      if (micCancelled) return;
+      await readyCountdown(2, '次の準備...');
+      if (micCancelled) return;
+      noteDisplay.textContent = '--';
+      const highMidi = await runPhase(3, '🎤 今度は一番高い声を3秒間出してください', ns => Math.max(...ns));
+      if (micCancelled) return;
+
+      stopMic();
+      ui.classList.add('hidden');
+
+      const lo = lowMidi  ?? 48;
+      const hi = highMidi ?? 72;
+      state.vocalMin = Math.min(lo, hi);
+      state.vocalMax = Math.max(lo, hi) === Math.min(lo, hi) ? Math.min(lo, hi) + 12 : Math.max(lo, hi);
+      pianoStep = 'low';
+      document.getElementById('piano-hint').innerHTML =
+        '<span class="piano-step-low">① 最低音</span>の鍵盤をタップして変更できます';
+      updatePianoHighlight();
+      updateVocalDisplay();
+
+    } catch (e) {
+      stopMic();
+      document.getElementById('mic-measure-ui').classList.add('hidden');
+      alert('マイクへのアクセスができませんでした。ブラウザの設定を確認してください。');
+    }
+  }
+
+  // Autocorrelation pitch detection
+  function autoCorrelate(buf, sampleRate) {
+    const SIZE = buf.length;
+    let rms = 0;
+    for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.02) return -1;
+
+    let r1 = 0, r2 = SIZE - 1;
+    for (let i = 0; i < SIZE / 2; i++) {
+      if (Math.abs(buf[i]) < 0.2) { r1 = i; break; }
+    }
+    for (let i = 1; i < SIZE / 2; i++) {
+      if (Math.abs(buf[SIZE - i]) < 0.2) { r2 = SIZE - i; break; }
+    }
+
+    const trimmed = buf.slice(r1, r2 + 1);
+    const len = trimmed.length;
+    const c = new Array(len).fill(0);
+    for (let i = 0; i < len; i++) {
+      for (let j = 0; j < len - i; j++) c[i] += trimmed[j] * trimmed[j + i];
+    }
+
+    let d = 0;
+    while (d < len - 1 && c[d] > c[d + 1]) d++;
+
+    let maxVal = -Infinity, maxPos = -1;
+    for (let i = d; i < len; i++) {
+      if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; }
+    }
+    if (maxPos <= 0) return -1;
+
+    const x1 = c[maxPos - 1] || 0, x2 = c[maxPos], x3 = c[maxPos + 1] || 0;
+    const denom = (2 * x2 - x3 - x1) || 1;
+    const T0 = maxPos - (x3 - x1) / (2 * denom);
+    return sampleRate / T0;
+  }
+
 });

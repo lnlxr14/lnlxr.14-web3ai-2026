@@ -392,26 +392,6 @@ window.songDatabase = [
       3: "透き通るようなハイトーンでサビを歌い上げれば、その場の空気を優しく包み込めます。"
     }
   },
-  // Ado (ado)
-  {
-    title: "新時代",
-    artist: "Ado",
-    artistKey: "ado",
-    vocalLevel: 3,
-    moods: ["hype", "singalong"],
-    members: ["friends", "family"],
-    era: "reiwa",
-    commentOriginalKey: {
-      3: "原曲キーでパワフルに突き抜ける一曲！圧倒的な声量と高音で、その場をあなたのワンマンライブに変えられます。",
-      1: "非常に高音なため、原曲キー縛りであればオクターブ下で力強く歌い切るのが最もおすすめです。",
-      2: "サビの超高音はかなりの張りと喉の力が必要ですが、みんなで大合唱すればノリで乗り切れます。"
-    },
-    commentTemplates: {
-      1: "【キー：-5推奨 または オク下】非常にパワフルなハイトーン曲。キーを5つ下げることで、力強い低音ボーカルとして成立します。",
-      2: "【キー：-3推奨】サビのハイトーンをクリアに出すために、キーを3つ下げてエネルギー全開で歌いましょう。",
-      3: "原曲キーでパワフルに突き抜ける一曲！圧倒的な声量と高音で、その場をあなたのワンマンライブに変えられます。"
-    }
-  },
   // 星野源 (hoshi)
   {
     title: "恋",
@@ -1103,7 +1083,6 @@ window.songDatabase = [
     title: "川の流れのように",
     artist: "美空ひばり",
     artistKey: "hibari",
-    universal: true,
     vocalLevel: 2,
     moods: ["emotional", "safe"],
     members: ["boss", "family", "date"],
@@ -1124,7 +1103,6 @@ window.songDatabase = [
     title: "上を向いて歩こう",
     artist: "坂本九",
     artistKey: "sakamoto-kyu",
-    universal: true,
     vocalLevel: 2,
     moods: ["safe", "singalong"],
     members: ["boss", "family", "friends"],
@@ -1145,7 +1123,6 @@ window.songDatabase = [
     title: "天城越え",
     artist: "石川さゆり",
     artistKey: "sayuri",
-    universal: true,
     vocalLevel: 2,
     moods: ["emotional"],
     members: ["boss", "family"],
@@ -1166,7 +1143,6 @@ window.songDatabase = [
     title: "まつり",
     artist: "北島三郎",
     artistKey: "kitajima",
-    universal: true,
     vocalLevel: 1,
     moods: ["hype", "singalong"],
     members: ["boss", "family"],
@@ -1187,7 +1163,6 @@ window.songDatabase = [
     title: "北酒場",
     artist: "細川たかし",
     artistKey: "hosokawa",
-    universal: true,
     vocalLevel: 1,
     moods: ["hype", "singalong"],
     members: ["boss", "family"],

@@ -64,16 +64,60 @@
 
         <h2 class="section-title"><span class="step-badge">1</span> あなたの声・得意な曲を設定</h2>
         
-        <!-- 音域設定 -->
+        <!-- 音域設定 v5: ピアノ鍵盤 & マイク測定 -->
         <div class="form-group">
           <label class="form-label">
-            <span>自分の声 of 高さ（音域）</span>
-            <span id="vocal-range-val" class="badge bg-cyan">中音域 (標準)</span>
+            <span>自分の音域を設定</span>
+            <span id="vocal-range-val" class="badge bg-cyan">中音域</span>
           </label>
-          <div class="slider-container">
-            <span class="slider-label">低音</span>
-            <input type="range" id="vocal-range" min="1" max="100" value="50" class="range-slider">
-            <span class="slider-label">高音</span>
+
+          <!-- マイク自動測定ボタン -->
+          <div class="mic-area">
+            <button type="button" id="btn-mic-measure" class="btn-mic-measure">
+              🎤 マイクで自動測定
+            </button>
+            <span class="mic-area-desc">声を出すだけで音域を自動検出します</span>
+          </div>
+
+          <!-- マイク測定 進行UI -->
+          <div id="mic-measure-ui" class="mic-measure-ui hidden">
+            <div class="mic-phase-label" id="mic-phase-label">準備中...</div>
+            <div class="mic-meter">
+              <div class="mic-bars">
+                <div class="mic-bar"></div><div class="mic-bar"></div>
+                <div class="mic-bar"></div><div class="mic-bar"></div>
+                <div class="mic-bar"></div>
+              </div>
+              <div class="mic-note-display" id="mic-note-display">--</div>
+            </div>
+            <div class="mic-countdown" id="mic-countdown">3</div>
+            <button type="button" id="btn-mic-cancel" class="btn-mic-cancel">✕ キャンセル</button>
+          </div>
+
+          <!-- 現在の音域表示 -->
+          <div class="vocal-selection-display">
+            <div class="vsd-item vsd-low">
+              <div class="vsd-label">🎵 最低音</div>
+              <div class="vsd-note" id="vsd-note-low">ド（C3）</div>
+            </div>
+            <div class="vsd-arrow">〜</div>
+            <div class="vsd-item vsd-high">
+              <div class="vsd-label">🎵 最高音</div>
+              <div class="vsd-note" id="vsd-note-high">ど（C5）</div>
+            </div>
+          </div>
+
+          <!-- ピアノ鍵盤 (C3〜C6) -->
+          <div class="piano-section">
+            <p class="piano-hint" id="piano-hint">
+              <span class="piano-step-low">① 最低音</span>の鍵盤をタップしてください
+            </p>
+            <div class="piano-wrapper">
+              <div class="piano-keyboard" id="piano-keyboard"></div>
+            </div>
+            <div class="piano-octave-marks">
+              <span>C3（ド）</span><span>C4（ど）</span><span>C5（ど）</span><span>C6（ど）</span>
+            </div>
           </div>
         </div>
 
@@ -104,7 +148,6 @@
             <button type="button" class="chip" data-artist="yuuri">優里</button>
             <button type="button" class="chip" data-artist="king-gnu">King Gnu</button>
             <button type="button" class="chip" data-artist="backnumber">back number</button>
-            <button type="button" class="chip" data-artist="ado">Ado</button>
             <button type="button" class="chip" data-artist="hoshi">星野源</button>
             <button type="button" class="chip" data-artist="mrs">Mrs. GREEN APPLE</button>
 <button type="button" class="chip" data-artist="ryokuoushoku">緑黄色社会</button>

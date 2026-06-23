@@ -1033,3 +1033,250 @@ input:checked + .slider::before {
   font-size: 0.72rem;
   color: var(--neon-cyan);
 }
+
+/* ================================================================
+   v5: マイク自動測定
+   ================================================================ */
+.mic-area {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.btn-mic-measure {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(157,0,255,0.15));
+  border: 1px solid var(--neon-cyan);
+  color: var(--neon-cyan);
+  padding: 0.65rem 1.4rem;
+  border-radius: 24px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+.btn-mic-measure:hover {
+  background: rgba(0,240,255,0.25);
+  box-shadow: 0 0 20px var(--neon-cyan-glow);
+  transform: translateY(-2px);
+}
+.mic-area-desc {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* マイク測定進行UI */
+.mic-measure-ui {
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--neon-cyan);
+  border-radius: 16px;
+  padding: 1.5rem;
+  text-align: center;
+  margin-bottom: 1.2rem;
+  box-shadow: 0 0 30px var(--neon-cyan-glow);
+}
+.mic-phase-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--neon-cyan);
+  margin-bottom: 1rem;
+}
+.mic-meter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+.mic-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 40px;
+}
+.mic-bar {
+  width: 6px;
+  background: var(--neon-cyan);
+  border-radius: 3px;
+  animation: wave 0.8s infinite ease-in-out;
+  box-shadow: 0 0 6px var(--neon-cyan-glow);
+}
+.mic-bar:nth-child(1) { height: 30%; animation-delay: 0s;    }
+.mic-bar:nth-child(2) { height: 70%; animation-delay: 0.1s;  }
+.mic-bar:nth-child(3) { height: 100%;animation-delay: 0.2s;  }
+.mic-bar:nth-child(4) { height: 70%; animation-delay: 0.3s;  }
+.mic-bar:nth-child(5) { height: 30%; animation-delay: 0.4s;  }
+.mic-note-display {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  font-family: 'Outfit', sans-serif;
+  min-width: 6rem;
+}
+.mic-countdown {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--neon-cyan);
+  font-family: 'Outfit', sans-serif;
+  text-shadow: 0 0 20px var(--neon-cyan-glow);
+  line-height: 1;
+  margin-bottom: 0.8rem;
+}
+.btn-mic-cancel {
+  background: transparent;
+  border: 1px solid var(--text-muted);
+  color: var(--text-muted);
+  padding: 0.4rem 1rem;
+  border-radius: 16px;
+  font-family: inherit;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+}
+.btn-mic-cancel:hover {
+  border-color: var(--neon-pink);
+  color: var(--neon-pink);
+}
+
+/* 音域表示 */
+.vocal-selection-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.2rem;
+}
+.vsd-item {
+  flex: 1;
+  text-align: center;
+}
+.vsd-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+.vsd-note {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+}
+.vsd-low .vsd-note  { color: var(--neon-purple); }
+.vsd-high .vsd-note { color: var(--neon-pink); }
+.vsd-arrow {
+  font-size: 1.4rem;
+  color: var(--text-muted);
+}
+
+/* ================================================================
+   v5: ピアノ鍵盤
+   ================================================================ */
+.piano-section {
+  margin-top: 0.5rem;
+}
+.piano-hint {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.8rem;
+}
+.piano-step-low  { color: var(--neon-purple); font-weight: 700; }
+.piano-step-high { color: var(--neon-pink);   font-weight: 700; }
+
+.piano-wrapper {
+  overflow-x: auto;
+  border-radius: 10px;
+  padding-bottom: 0.5rem;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--glass-border);
+  padding: 1rem 0.8rem 0.8rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.piano-keyboard {
+  position: relative;
+  user-select: none;
+}
+
+.piano-key {
+  position: absolute;
+  top: 0;
+  border: none;
+  border-radius: 0 0 6px 6px;
+  cursor: pointer;
+  transition: background 0.12s, transform 0.1s, box-shadow 0.15s;
+  padding: 0;
+  font-family: inherit;
+}
+.piano-key:active { transform: scaleY(0.96); }
+
+.white-key {
+  width: 34px;
+  height: 110px;
+  background: #e8e8e8;
+  border: 1px solid #aaa;
+  z-index: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+.white-key:hover { background: #d0d0d0; }
+
+.black-key {
+  width: 22px;
+  height: 70px;
+  background: #1a1a2e;
+  border: 1px solid #000;
+  z-index: 2;
+}
+.black-key:hover { background: #2d2d50; }
+
+/* オクターブラベル (C鍵) */
+.key-oct-label {
+  font-size: 0.55rem;
+  color: #666;
+  pointer-events: none;
+}
+
+/* 選択中ハイライト */
+.white-key.key-low {
+  background: var(--neon-purple) !important;
+  box-shadow: 0 0 14px var(--neon-purple-glow);
+  border-color: var(--neon-purple);
+}
+.white-key.key-high {
+  background: var(--neon-pink) !important;
+  box-shadow: 0 0 14px var(--neon-pink-glow);
+  border-color: var(--neon-pink);
+}
+.white-key.key-in-range {
+  background: rgba(0, 240, 255, 0.35) !important;
+  border-color: var(--neon-cyan);
+}
+.black-key.key-low {
+  background: var(--neon-purple) !important;
+  box-shadow: 0 0 12px var(--neon-purple-glow);
+}
+.black-key.key-high {
+  background: var(--neon-pink) !important;
+  box-shadow: 0 0 12px var(--neon-pink-glow);
+}
+.black-key.key-in-range {
+  background: rgba(0, 240, 255, 0.7) !important;
+}
+
+.piano-octave-marks {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0.8rem 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
