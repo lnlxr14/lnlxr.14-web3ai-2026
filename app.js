@@ -30,9 +30,126 @@ document.addEventListener('DOMContentLoaded', () => {
   const songSearchSection = document.getElementById('song-search-section');
   const songSearchInput = document.getElementById('song-search-input');
   const searchResultsList = document.getElementById('search-results-list');
+  const setlistSection = document.getElementById('setlist-section');
+  const tabSetlist = document.getElementById('tab-setlist');
+  const setlistCountBadge = document.getElementById('setlist-count-badge');
 
   // AI関連セクション（タブ切替で使う）
   const aiSections = [modeSelectSection, configSection, loadingArea, resultsArea];
+
+  // --- セトリ (localStorage) ---
+  function loadSetlist() {
+    try { return JSON.parse(localStorage.getItem('karaoke_setlist') || '[]'); }
+    catch(e) { return []; }
+  }
+
+  function saveSetlist(list) {
+    localStorage.setItem('karaoke_setlist', JSON.stringify(list));
+  }
+
+  function updateSetlistBadge() {
+    const list = loadSetlist();
+    if (list.length > 0) {
+      setlistCountBadge.textContent = list.length;
+      setlistCountBadge.classList.remove('hidden');
+    } else {
+      setlistCountBadge.classList.add('hidden');
+    }
+  }
+
+  function addToSetlist(title, artist) {
+    const list = loadSetlist();
+    if (list.find(s => s.title === title)) return; // 重複排除
+    list.push({ title, artist, done: false });
+    saveSetlist(list);
+    updateSetlistBadge();
+    renderSetlist();
+  }
+
+  function renderSetlist() {
+    const list = loadSetlist();
+    const container = document.getElementById('setlist-list');
+    const emptyState = document.getElementById('setlist-empty');
+    const progress = document.getElementById('setlist-progress');
+    const progressText = document.getElementById('setlist-progress-text');
+    const progressFill = document.getElementById('setlist-progress-fill');
+
+    // 既存アイテムを削除（emptyStateは残す）
+    container.querySelectorAll('.setlist-item').forEach(el => el.remove());
+
+    if (list.length === 0) {
+      emptyState.classList.remove('hidden');
+      progress.classList.add('hidden');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+    progress.classList.remove('hidden');
+
+    const doneCount = list.filter(s => s.done).length;
+    progressText.textContent = `${doneCount} / ${list.length} 曲完了`;
+    progressFill.style.width = `${Math.round((doneCount / list.length) * 100)}%`;
+
+    list.forEach((song, idx) => {
+      const item = document.createElement('div');
+      item.className = 'setlist-item' + (song.done ? ' setlist-done' : '');
+      item.innerHTML = `
+        <button class="setlist-check-btn" data-idx="${idx}" title="歌った！">
+          ${song.done ? '✅' : '○'}
+        </button>
+        <div class="setlist-song-info">
+          <div class="setlist-song-title">${song.title}</div>
+          <div class="setlist-song-artist">${song.artist}</div>
+        </div>
+        <div class="setlist-actions">
+          <button class="setlist-move-btn" data-idx="${idx}" data-dir="-1" title="上へ" ${idx === 0 ? 'disabled' : ''}>▲</button>
+          <button class="setlist-move-btn" data-idx="${idx}" data-dir="1" title="下へ" ${idx === list.length - 1 ? 'disabled' : ''}>▼</button>
+          <button class="setlist-remove-btn" data-idx="${idx}" title="削除">✕</button>
+        </div>
+      `;
+      container.appendChild(item);
+    });
+
+    // イベント
+    container.querySelectorAll('.setlist-check-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const l = loadSetlist();
+        l[+btn.dataset.idx].done = !l[+btn.dataset.idx].done;
+        saveSetlist(l);
+        renderSetlist();
+        updateSetlistBadge();
+      });
+    });
+    container.querySelectorAll('.setlist-move-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const l = loadSetlist();
+        const i = +btn.dataset.idx;
+        const d = +btn.dataset.dir;
+        const j = i + d;
+        if (j < 0 || j >= l.length) return;
+        [l[i], l[j]] = [l[j], l[i]];
+        saveSetlist(l);
+        renderSetlist();
+      });
+    });
+    container.querySelectorAll('.setlist-remove-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const l = loadSetlist();
+        l.splice(+btn.dataset.idx, 1);
+        saveSetlist(l);
+        renderSetlist();
+        updateSetlistBadge();
+      });
+    });
+  }
+
+  document.getElementById('btn-clear-setlist').addEventListener('click', () => {
+    if (loadSetlist().length === 0) return;
+    if (!confirm('セットリストを全削除しますか？')) return;
+    saveSetlist([]);
+    renderSetlist();
+    updateSetlistBadge();
+  });
 
   // 最後に表示していたAIセクションを記憶（タブ復帰時に使う）
   let lastAiSection = modeSelectSection;
@@ -110,14 +227,13 @@ document.addEventListener('DOMContentLoaded', () => {
     navTabs.forEach(t => t.classList.remove('active'));
     mySongsSection.classList.add('hidden');
     songSearchSection.classList.add('hidden');
+    setlistSection.classList.add('hidden');
 
     if (tabId === 'ai') {
       tabAI.classList.add('active');
-      // 離れる前に表示していたセクションを復元
       aiSections.forEach(s => s.classList.add('hidden'));
       lastAiSection.classList.remove('hidden');
     } else {
-      // AIタブを離れる前に現在のセクションを保存
       const visibleSection = aiSections.find(s => !s.classList.contains('hidden'));
       if (visibleSection) lastAiSection = visibleSection;
       aiSections.forEach(s => s.classList.add('hidden'));
@@ -129,6 +245,10 @@ document.addEventListener('DOMContentLoaded', () => {
       } else if (tabId === 'search') {
         tabSearch.classList.add('active');
         songSearchSection.classList.remove('hidden');
+      } else if (tabId === 'setlist') {
+        tabSetlist.classList.add('active');
+        renderSetlist();
+        setlistSection.classList.remove('hidden');
       }
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -137,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
   tabAI.addEventListener('click', () => showTab('ai'));
   tabMySongs.addEventListener('click', () => showTab('mysongs'));
   tabSearch.addEventListener('click', () => showTab('search'));
+  tabSetlist.addEventListener('click', () => showTab('setlist'));
 
   // --- マイソング ---
   function renderMySongs() {
@@ -243,9 +364,26 @@ document.addEventListener('DOMContentLoaded', () => {
     switchModeLearn.classList.toggle('active', mode === 'learn');
   }
 
+  const singGuideBanner = document.getElementById('sing-guide-banner');
+
+  function updateSingGuideBanner(mode) {
+    if (mode !== 'sing') {
+      singGuideBanner.classList.add('hidden');
+      return;
+    }
+    const tags = loadTags();
+    const masteredCount = Object.values(tags).filter(t => t === 'mastered').length;
+    singGuideBanner.classList.toggle('hidden', masteredCount >= 5);
+  }
+
+  document.getElementById('btn-sing-guide-to-search').addEventListener('click', () => {
+    showTab('search');
+  });
+
   function selectMode(mode) {
     state.mode = mode;
     updateModeSwitcher(mode);
+    updateSingGuideBanner(mode);
     modeSelectSection.classList.add('hidden');
     lastAiSection = configSection;
     configSection.classList.remove('hidden');
@@ -259,17 +397,20 @@ document.addEventListener('DOMContentLoaded', () => {
   switchModeSing.addEventListener('click', () => {
     state.mode = 'sing';
     updateModeSwitcher('sing');
+    updateSingGuideBanner('sing');
   });
   switchModeLearn.addEventListener('click', () => {
     state.mode = 'learn';
     updateModeSwitcher('learn');
+    updateSingGuideBanner('learn');
   });
 
   // --- Event Listeners ---
 
-  // ピアノ鍵盤を初期化
+  // ピアノ鍵盤・バッジを初期化
   buildPiano();
   updateVocalDisplay();
+  updateSetlistBadge();
 
   // マイク測定ボタン
   document.getElementById('btn-mic-measure').addEventListener('click', startMicMeasure);
@@ -388,11 +529,13 @@ document.addEventListener('DOMContentLoaded', () => {
       card.className = `result-card ${isTopPick ? 'top-pick' : ''}`;
 
       // タグボタンのHTML
+      const inSetlist = loadSetlist().find(s => s.title === rec.title);
       const tagHTML = `
         <div class="tag-btn-group">
           <button class="tag-btn ${currentTag === 'mastered' ? 'active-mastered' : ''}" data-song="${rec.title}" data-tag="mastered">✅ 習得済み</button>
           <button class="tag-btn ${currentTag === 'practicing' ? 'active-practicing' : ''}" data-song="${rec.title}" data-tag="practicing">🎵 練習中</button>
           <button class="tag-btn tag-btn-clear ${currentTag === null ? 'hidden' : ''}" data-song="${rec.title}" data-tag="clear">✕ クリア</button>
+          <button class="tag-btn tag-btn-setlist ${inSetlist ? 'active-setlist' : ''}" data-song="${rec.title}" data-artist="${rec.artist}">📋 ${inSetlist ? 'セトリ済み' : 'セトリに追加'}</button>
         </div>
       `;
 
@@ -400,7 +543,10 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="song-info">
           <h3>${rec.title}</h3>
           <div class="song-artist">アーティスト: ${rec.artist}</div>
-          ${rec.isUniversal ? '<span class="universal-badge">👥 みんな知ってる</span>' : ''}
+          ${rec.songStatus === 'mastered'   ? '<span class="status-badge badge-mastered">✅ 習得済み</span>' : ''}
+          ${rec.songStatus === 'universal'  ? '<span class="status-badge badge-universal">👥 みんな知ってる</span>' : ''}
+          ${rec.songStatus === 'practicing' ? '<span class="status-badge badge-practicing">🎵 練習中</span>' : ''}
+          ${rec.songStatus === 'untagged'   ? '<span class="status-badge badge-untagged">📌 タグなし</span>' : ''}
         </div>
 
         <div class="metrics">
@@ -437,15 +583,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const songTitle = btn.dataset.song;
         const tag = btn.dataset.tag;
 
+        // セトリボタン
+        if (btn.classList.contains('tag-btn-setlist')) {
+          const already = loadSetlist().find(s => s.title === songTitle);
+          if (!already) {
+            addToSetlist(songTitle, btn.dataset.artist);
+            btn.textContent = '📋 セトリ済み';
+            btn.classList.add('active-setlist');
+          }
+          return;
+        }
+
         if (tag === 'clear') {
           saveTag(songTitle, null);
         } else {
           const currentTag = loadTags()[songTitle];
-          // 同じタグを再クリックしたらクリア
           saveTag(songTitle, currentTag === tag ? null : tag);
         }
 
-        // カード内のタグボタンを再描画
         const newTags = loadTags();
         const newTag = newTags[songTitle] || null;
         const group = btn.closest('.tag-btn-group');
@@ -475,13 +630,17 @@ document.addEventListener('DOMContentLoaded', () => {
         score += Math.floor(Math.random() * 50) - 25;
       }
 
-      // singモード: 習得済みでも universalでもない曲は除外
+      // singモード: mastered → universal → practicing → untagged の優先順位
       if (isSingMode) {
-        if (songTag !== 'mastered' && !song.universal) {
-          return null;
+        if (songTag === 'mastered') {
+          score += 60;        // 最優先
+        } else if (songTag === 'practicing') {
+          return null;        // 練習中: まだ人前で歌う段階ではない
+        } else if (song.universal) {
+          score += 0;         // 知名度で普通に競う
+        } else {
+          score -= 10;        // タグなし非universal: 状況次第で浮上できる程度に
         }
-        // 習得済みを優先
-        if (songTag === 'mastered') score += 60;
       } else {
         // learnモード: 習得済みは提案から外す
         if (songTag === 'mastered') return null;
@@ -543,17 +702,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentState.member === 'boss') {
         if (song.era === 'showa') score += 35;
         else if (song.era === 'heisei') score += 20;
-        else if (song.era === 'reiwa') score -= 15;
+        else if (song.era === 'reiwa') score -= 35;
         if (song.members.includes('boss')) score += 15;
       } else if (currentState.member === 'friends') {
         if (song.era === 'reiwa') score += 35;
         else if (song.era === 'heisei') score += 15;
-        else if (song.era === 'showa') score -= 20;
+        else if (song.era === 'showa') score -= 40;
         if (song.members.includes('friends')) score += 15;
       } else if (currentState.member === 'date') {
         if (song.era === 'reiwa') score += 25;
         else if (song.era === 'heisei') score += 25;
-        else if (song.era === 'showa') score -= 15;
+        else if (song.era === 'showa') score -= 35;
         if (song.members.includes('date')) score += 15;
       } else if (currentState.member === 'family') {
         if (song.era === 'showa') score += 20;
@@ -566,17 +725,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (currentState.generation === '20s') {
         if (song.era === 'reiwa')  score += 30;
         else if (song.era === 'heisei') score += 5;
-        else if (song.era === 'showa')  score -= 20;
+        else if (song.era === 'showa')  score -= 40;
       } else if (currentState.generation === '30s') {
         if (song.era === 'reiwa')  score += 15;
         else if (song.era === 'heisei') score += 20;
-        else if (song.era === 'showa')  score -= 10;
+        else if (song.era === 'showa')  score -= 25;
       } else if (currentState.generation === '40s50s') {
-        if (song.era === 'reiwa')  score -= 10;
+        if (song.era === 'reiwa')  score -= 30;
         else if (song.era === 'heisei') score += 25;
         else if (song.era === 'showa')  score += 20;
       } else if (currentState.generation === '60s') {
-        if (song.era === 'reiwa')  score -= 25;
+        if (song.era === 'reiwa')  score -= 50;
         else if (song.era === 'heisei') score += 10;
         else if (song.era === 'showa')  score += 35;
       }
@@ -589,6 +748,15 @@ document.addEventListener('DOMContentLoaded', () => {
         comment = song.commentTemplates[userVocalLevel] || song.commentTemplates[2];
       }
 
+      // singモード向けステータスラベル
+      let songStatus = null;
+      if (isSingMode) {
+        if (songTag === 'mastered')      songStatus = 'mastered';
+        else if (song.universal)         songStatus = 'universal';
+        else if (songTag === 'practicing') songStatus = 'practicing';
+        else                             songStatus = 'untagged';
+      }
+
       return {
         title: song.title,
         artist: song.artist,
@@ -596,7 +764,8 @@ document.addEventListener('DOMContentLoaded', () => {
         hypeMatch: hypeBase,
         comment: comment,
         score: score,
-        isUniversal: !!song.universal
+        isUniversal: !!song.universal,
+        songStatus
       };
     }).filter(s => s !== null);
 

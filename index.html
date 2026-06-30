@@ -32,6 +32,7 @@
       <button type="button" class="nav-tab active" id="tab-ai">🎤 AI選曲</button>
       <button type="button" class="nav-tab" id="tab-mysongs">⭐ マイソング</button>
       <button type="button" class="nav-tab" id="tab-search">🔍 曲を探す</button>
+      <button type="button" class="nav-tab" id="tab-setlist">📋 セトリ <span class="setlist-count-badge hidden" id="setlist-count-badge">0</span></button>
     </nav>
 
     <main class="main-content">
@@ -55,6 +56,16 @@
 
       <!-- 入力セクション -->
       <section class="config-section card hidden">
+
+        <!-- singモード 誘導バナー -->
+        <div class="sing-guide-banner hidden" id="sing-guide-banner">
+          <span class="sing-guide-icon">💡</span>
+          <div class="sing-guide-body">
+            <strong>習得済みの曲が少ない</strong>ため、全曲の中から提案します。<br>
+            <span class="sing-guide-sub">「曲を探す」タブでタグ付けすると、歌える曲だけに絞れます</span>
+          </div>
+          <button type="button" class="sing-guide-link" id="btn-sing-guide-to-search">タグ付けへ →</button>
+        </div>
 
         <!-- モード切替 -->
         <div class="mode-switcher">
@@ -254,6 +265,28 @@
         </div>
         <div id="mastered-list" class="my-songs-list"></div>
         <div id="practicing-list" class="my-songs-list hidden"></div>
+      </section>
+
+      <!-- セトリセクション -->
+      <section class="setlist-section card hidden" id="setlist-section">
+        <div class="setlist-header-row">
+          <h2 class="section-title" style="margin-bottom:0;border:none;padding:0">📋 今日のセットリスト</h2>
+          <button type="button" id="btn-clear-setlist" class="btn-setlist-clear">🗑 全削除</button>
+        </div>
+        <p class="setlist-subtitle">歌い終わったらタップしてチェック！</p>
+        <div id="setlist-list" class="setlist-list">
+          <div class="empty-state" id="setlist-empty">
+            <div class="empty-state-icon">📋</div>
+            <p>セトリはまだ空です</p>
+            <p style="font-size:0.85rem;color:var(--text-muted)">AI選曲の結果から「セトリに追加」してみましょう</p>
+          </div>
+        </div>
+        <div class="setlist-progress hidden" id="setlist-progress">
+          <span id="setlist-progress-text">0 / 0 曲完了</span>
+          <div class="setlist-progress-bar-bg">
+            <div class="setlist-progress-bar-fill" id="setlist-progress-fill"></div>
+          </div>
+        </div>
       </section>
 
       <!-- 曲検索セクション -->
